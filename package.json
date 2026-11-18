@@ -1,0 +1,16 @@
+{
+  "name": "techloop-proyecto",
+  "version": "1.0.0",
+  "description": "TechLoop - Entorno de pruebas de ciberseguridad (Actividad 3)",
+  "main": "backend/servidor.js",
+  "scripts": {
+    "start": "node backend/servidor.js",
+    "dev": "node --watch backend/servidor.js",
+    "test:sqli": "python3 scripts_ataque/ataque_sqli.py",
+    "test:dos": "python3 scripts_ataque/ataque_dos.py",
+    "test:auth": "python3 scripts_ataque/prueba_autenticacion.py"
+  },
+  "keywords": ["ciberseguridad", "sqli", "dos", "jwt"],
+  "author": "TechLoop Team",
+  "license": "ISC"
+}

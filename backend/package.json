@@ -1,0 +1,30 @@
+{
+  "name": "techloop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js",
+    "dev": "node --watch servidor.js",
+    "test:sqli": "python3 ataque_sqli.py",
+    "test:dos": "python3 ataque_dos.py",
+    "test:auth": "python3 prueba_autenticacion.py"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/P4PUNN0/TechLoop.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/P4PUNN0/TechLoop/issues"
+  },
+  "homepage": "https://github.com/P4PUNN0/TechLoop#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1"
+  }
+}

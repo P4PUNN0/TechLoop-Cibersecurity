@@ -160,9 +160,10 @@ onAuthStateChanged(auth, (user) => {
 /* ------------------------- */
 /* Product Rendering        */
 /* ------------------------- */
-const getBadgeHTML = (badge) => {
-  if (badge === 'new') return '<span class="badge badge-new">Nuevo</span>';
-  if (badge === 'refurbished') return '<span class="badge badge-refurbished">Reacondicionado</span>';
+const getBadgeHTML = (product) => {
+  if (product.oculto === 1) return '<span class="badge" style="background:#dc2626;color:#fff;font-weight:bold;">⚠️ CONFIDENCIAL / OCULTO</span>';
+  if (product.badge === 'new') return '<span class="badge badge-new">Nuevo</span>';
+  if (product.badge === 'refurbished') return '<span class="badge badge-refurbished">Reacondicionado</span>';
   return '';
 };
 
@@ -184,18 +185,18 @@ const renderProducts = (productsArray) => {
     card.className = 'product-card';
     card.innerHTML = `
       <div class="card-image">
-        <img src="${product.image}" alt="${product.name}" loading="lazy">
+        <img src="${product.image || product.imagen || 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=400&h=300&fit=crop'}" alt="${product.name || product.nombre}" loading="lazy">
         <div class="card-badges">
-          ${getBadgeHTML(product.badge)}
-          <span class="badge badge-refurbished">${product.condition}</span>
+          ${getBadgeHTML(product)}
+          <span class="badge badge-refurbished">${product.condition || product.condicion || 'Reacondicionado'}</span>
         </div>
       </div>
       <div class="card-content">
-        <h3 class="card-title">${product.name}</h3>
-        <p class="card-description">${product.description}</p>
+        <h3 class="card-title">${product.name || product.nombre}</h3>
+        <p class="card-description">${product.description || product.descripcion || ''}</p>
         <div class="card-footer">
-          <span class="card-price">$${product.price.toFixed(2)}</span>
-          <span class="card-city">📍 ${product.city}</span>
+          <span class="card-price">$${Number(product.price || product.precio || 0).toFixed(2)}</span>
+          <span class="card-city">📍 ${product.city || product.ciudad || 'Colombia'}</span>
         </div>
         <button class="add-to-cart-btn" data-id="${product.id}">Añadir al carrito</button>
       </div>
@@ -218,37 +219,71 @@ const renderProducts = (productsArray) => {
 };
 
 /* ------------------------- */
-/* Filtering & Search       */
+/* API Backend Integration  */
 /* ------------------------- */
-const filterProducts = () => {
-  const searchTerm = searchInput.value.toLowerCase();
-  let filtered = allProducts;
+const URL_API = 'http://localhost:3000/api';
 
-  // Search filter
-  if (searchTerm) {
-    filtered = filtered.filter(p => 
-      p.name.toLowerCase().includes(searchTerm) || 
-      p.description.toLowerCase().includes(searchTerm)
-    );
+const cargarCatalogoBackend = async () => {
+  try {
+    const respuesta = await fetch(`${URL_API}/productos`);
+    if (respuesta.ok) {
+      const datosJson = await respuesta.json();
+      if (datosJson.datos && datosJson.datos.length > 0) {
+        allProducts = datosJson.datos;
+        renderProducts(allProducts);
+        return;
+      }
+    }
+  } catch (error) {
+    console.log('Servidor backend no disponible en localhost:3000, usando datos locales.');
   }
-
-  // Category filter
-  if (selectedCategory !== 'all') {
-    filtered = filtered.filter(p => p.category === selectedCategory);
-  }
-
-  // City filter
-  if (selectedCity !== 'all') {
-    filtered = filtered.filter(p => p.city === selectedCity);
-  }
-
-  renderProducts(filtered);
+  // Respaldo
+  renderProducts(allProducts);
 };
 
-// Search input
+/* ------------------------- */
+/* Filtering & Search       */
+/* ------------------------- */
+const filterProducts = async () => {
+  const terminoBusqueda = searchInput.value.trim();
+
+  // Si hay término de búsqueda, intentamos consultar el endpoint vulnerable a SQLi
+  if (terminoBusqueda) {
+    try {
+      const respuesta = await fetch(`${URL_API}/productos/buscar?busqueda=${encodeURIComponent(terminoBusqueda)}`);
+      if (respuesta.ok) {
+        const datos = await respuesta.json();
+        if (datos.productos) {
+          renderProducts(datos.productos);
+          return;
+        }
+      }
+    } catch (e) {
+      // Si el backend no responde, buscar localmente
+    }
+
+    let filtrados = allProducts.filter(p => 
+      (p.name || p.nombre || '').toLowerCase().includes(terminoBusqueda.toLowerCase()) || 
+      (p.description || p.descripcion || '').toLowerCase().includes(terminoBusqueda.toLowerCase())
+    );
+    renderProducts(filtrados);
+    return;
+  }
+
+  // Filtro normal por categorías y ciudad
+  let filtrados = allProducts;
+  if (selectedCategory !== 'all') {
+    filtrados = filtrados.filter(p => (p.category || p.categoria) === selectedCategory);
+  }
+  if (selectedCity !== 'all') {
+    filtrados = filtrados.filter(p => (p.city || p.ciudad) === selectedCity);
+  }
+  renderProducts(filtrados);
+};
+
+// Eventos de búsqueda y filtros
 searchInput.addEventListener('input', filterProducts);
 
-// Category pills
 categoryPills.addEventListener('click', (e) => {
   if (e.target.classList.contains('pill')) {
     document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
@@ -258,11 +293,10 @@ categoryPills.addEventListener('click', (e) => {
   }
 });
 
-// City filter
 cityFilter.addEventListener('change', (e) => {
   selectedCity = e.target.value;
   filterProducts();
 });
 
-// Initial render
-renderProducts(allProducts);
+// Carga inicial
+cargarCatalogoBackend();
